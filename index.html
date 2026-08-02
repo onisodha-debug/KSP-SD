@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aplikasi Monitoring & Validasi KSP</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- FontAwesome Icon -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .hero-header { background: linear-gradient(135deg, #0d6efd, #0dcaf0); color: white; border-radius: 0 0 20px 20px; }
+    .badge-feedback-empty { background-color: #e0e0e0; color: #6c757d; font-weight: 500; }
+    .table-responsive { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .nav-pills .nav-link.active { background-color: #0d6efd; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <!-- Header & Akses Cepat -->
+  <div class="hero-header p-4 p-md-5 mb-4 text-center">
+    <h2 class="fw-bold mb-2"><i class="fa-solid fa-file-signature me-2"></i>Monitoring & Validasi KSP</h2>
+    <p class="mb-4 opacity-75">Sistem Informasi Pengumpulan dan Validasi Kurikulum Satuan Pendidikan</p>
+    
+    <div class="d-flex justify-content-center gap-3 flex-wrap">
+      <!-- UBAH LINK GOOGLE FORM UPLOAD GURU DI BAWAH INI -->
+      <a href="https://forms.gle/ihPahmdoKuJzSgyC8" target="_blank" class="btn btn-light btn-lg fw-semibold shadow-sm">
+        <i class="fa-solid fa-cloud-arrow-up text-primary me-2"></i>Upload Dokumen KSP
+      </a>
+      <!-- UBAH LINK GOOGLE FORM / SHEET VALIDASI PENGAWAS DI BAWAH INI -->
+      <a href="https://docs.google.com/spreadsheets/d/1mCKVQ584Kw0EQCoi71rd13Oy29exLlNTnh2_y1oektY/edit?usp=sharing" target="_blank" class="btn btn-warning btn-lg fw-semibold shadow-sm text-dark">
+        <i class="fa-solid fa-user-check me-2"></i>Validasi Pengawas
+      </a>
+    </div>
+  </div>
+
+  <div class="container my-4">
+    
+    <!-- Tab Navigasi Gugus -->
+    <ul class="nav nav-pills justify-content-center mb-4 gap-2" id="gugusTab" role="tablist">
+      <li class="nav-item">
+        <button class="nav-link active px-4 py-2" onclick="filterData('Semua')">Semua Gugus</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link px-4 py-2" onclick="filterData('Gugus 1')">Gugus 1</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link px-4 py-2" onclick="filterData('Gugus 2')">Gugus 2</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link px-4 py-2" onclick="filterData('Gugus 3')">Gugus 3</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link px-4 py-2" onclick="filterData('Gugus 4')">Gugus 4</button>
+      </li>
+    </ul>
+
+    <!-- Area Tabel Data -->
+    <div class="table-responsive p-3">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th scope="col">No</th>
+            <th scope="col">Satuan Pendidikan / Kepala Sekolah</th>
+            <th scope="col">Gugus</th>
+            <th scope="col">Jenis Dokumen</th>
+            <th scope="col">Berkas KSP</th>
+            <th scope="col">Status Validasi</th>
+            <th scope="col">Umpan Balik Pengawas</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <!-- Loading State -->
+          <tr>
+            <td colspan="7" class="text-center py-5">
+              <div class="spinner-border text-primary" role="status"></div>
+              <p class="mt-2 text-muted mb-0">Memuat data KSP...</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <script>
+    // UBAH DENGAN URL DEPLOYMENT GOOGLE APPS SCRIPT (GAS) KAMU
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxhnYPYvtldmfWPC1KsrMTvCCtdfw5Gzg_uP0q4RG7ByslyvyRiUL_ekkFnxXWiaw80/exec";
+
+    let rawData = [];
+    let currentFilter = "Semua";
+
+    // Ambil Data dari GAS
+    async function loadData() {
+      try {
+        const response = await fetch(GAS_API_URL);
+        rawData = await response.json();
+        renderTable();
+      } catch (error) {
+        document.getElementById('tableBody').innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center text-danger py-4">
+              <i class="fa-solid fa-triangle-exclamation fs-3 mb-2"></i><br>
+              Gagal memuat data. Pastikan URL Google Apps Script sudah benar.
+            </td>
+          </tr>`;
+      }
+    }
+
+    // Filter Data Berdasarkan Gugus
+    function filterData(gugus) {
+      currentFilter = gugus;
+      
+      // Update tampilan tombol tab aktif
+      const buttons = document.querySelectorAll('#gugusTab .nav-link');
+      buttons.forEach(btn => {
+        if (btn.innerText.includes(gugus)) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      renderTable();
+    }
+
+    // Tampilkan Data ke Tabel
+    function renderTable() {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = "";
+
+      // Filter array data sesuai kolom "Gugus kerja"
+      const filtered = currentFilter === "Semua" 
+        ? rawData 
+        : rawData.filter(item => (item["Gugus kerja"] || "").toString().trim().toLowerCase() === currentFilter.toLowerCase());
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center py-4 text-muted">
+              Belum ada data pengumpulan KSP untuk ${currentFilter}.
+            </td>
+          </tr>`;
+        return;
+      }
+
+      filtered.forEach((row, index) => {
+        const sekolah = row["Nama Satuan Pendidikan"] || "-";
+        const npsn = row["NPSN"] || "-";
+        const ks = row["Nama Lengkap Kelapala Sekolah"] || "-";
+        const gugus = row["Gugus kerja"] || "-";
+        const jenisDoc = row["Jenis Dokumen"] || "-";
+        const linkDoc = row["Unggah Berkas Dokumen KSP"] || "#";
+        const statusVal = (row["Status Validasi"] || "").trim();
+        const feedback = (row["Umpan Balik pengawas"] || "").trim();
+
+        // 1. Logika Tampilan Status Validasi
+        let badgeStatus = `<span class="badge bg-secondary">Belum Divalidasi</span>`;
+        if (statusVal.toLowerCase().includes("tervalidasi") || statusVal.toLowerCase().includes("sesuai")) {
+          badgeStatus = `<span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>${statusVal}</span>`;
+        } else if (statusVal.toLowerCase().includes("revisi") || statusVal.toLowerCase().includes("perbaikan")) {
+          badgeStatus = `<span class="badge bg-warning text-dark"><i class="fa-solid fa-rotate me-1"></i>${statusVal}</span>`;
+        } else if (statusVal !== "") {
+          badgeStatus = `<span class="badge bg-info text-dark">${statusVal}</span>`;
+        }
+
+        // 2. Logika Tampilan Umpan Balik Pengawas
+        let feedbackContent = `<span class="badge badge-feedback-empty px-3 py-2">Belum ada umpan balik</span>`;
+        if (feedback !== "") {
+          feedbackContent = `<div class="p-2 bg-light border rounded text-dark small"><i class="fa-regular fa-comment-dots me-1 text-primary"></i>${feedback}</div>`;
+        }
+
+        // Render Baris Tabel
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${index + 1}</td>
+          <td>
+            <div class="fw-bold">${sekolah}</div>
+            <div class="text-muted small">NPSN: ${npsn} | KS: ${ks}</div>
+          </td>
+          <td><span class="badge bg-outline-primary border text-primary">${gugus}</span></td>
+          <td>${jenisDoc}</td>
+          <td>
+            ${linkDoc !== "#" 
+              ? `<a href="${linkDoc}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-file-pdf me-1"></i>Lihat Dokumen</a>`
+              : `<span class="text-muted small">Tidak ada berkas</span>`
+            }
+          </td>
+          <td>${badgeStatus}</td>
+          <td>${feedbackContent}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Jalankan pertama kali saat halaman dimuat
+    loadData();
+  </script>
+</body>
+</html>
