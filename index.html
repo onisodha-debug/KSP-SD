@@ -14,6 +14,7 @@
     .badge-feedback-empty { background-color: #e0e0e0; color: #6c757d; font-weight: 500; }
     .table-responsive { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     .nav-pills .nav-link.active { background-color: #0d6efd; font-weight: 600; }
+    .btn-filter-doc { border-radius: 20px; font-size: 0.875rem; font-weight: 500; }
   </style>
 </head>
 <body>
@@ -24,12 +25,12 @@
     <p class="mb-4 opacity-75">Sistem Informasi Pengumpulan dan Validasi Kurikulum Satuan Pendidikan</p>
     
     <div class="d-flex justify-content-center gap-3 flex-wrap">
-      <!-- UBAH LINK GOOGLE FORM UPLOAD GURU DI BAWAH INI -->
-      <a href="https://forms.gle/ihPahmdoKuJzSgyC8" target="_blank" class="btn btn-light btn-lg fw-semibold shadow-sm">
+      <!-- PASTE LINK GOOGLE FORM UPLOAD GURU DI BAWAH INI -->
+      <a href="https://forms.google.com/YOUR_FORM_GURU_LINK" target="_blank" class="btn btn-light btn-lg fw-semibold shadow-sm">
         <i class="fa-solid fa-cloud-arrow-up text-primary me-2"></i>Upload Dokumen KSP
       </a>
-      <!-- UBAH LINK GOOGLE FORM / SHEET VALIDASI PENGAWAS DI BAWAH INI -->
-      <a href="https://docs.google.com/spreadsheets/d/1mCKVQ584Kw0EQCoi71rd13Oy29exLlNTnh2_y1oektY/edit?usp=sharing" target="_blank" class="btn btn-warning btn-lg fw-semibold shadow-sm text-dark">
+      <!-- PASTE LINK GOOGLE FORM / SHEET VALIDASI PENGAWAS DI BAWAH INI -->
+      <a href="https://docs.google.com/spreadsheets/d/YOUR_SPREADSHEET_ID" target="_blank" class="btn btn-warning btn-lg fw-semibold shadow-sm text-dark">
         <i class="fa-solid fa-user-check me-2"></i>Validasi Pengawas
       </a>
     </div>
@@ -37,24 +38,40 @@
 
   <div class="container my-4">
     
-    <!-- Tab Navigasi Gugus -->
-    <ul class="nav nav-pills justify-content-center mb-4 gap-2" id="gugusTab" role="tablist">
+    <!-- Tab Navigasi Gugus Utama -->
+    <ul class="nav nav-pills justify-content-center mb-3 gap-2" id="gugusTab" role="tablist">
       <li class="nav-item">
-        <button class="nav-link active px-4 py-2" onclick="filterData('Semua')">Semua Gugus</button>
+        <button class="nav-link active px-4 py-2" onclick="setGugusFilter('Semua')">Semua Gugus</button>
       </li>
       <li class="nav-item">
-        <button class="nav-link px-4 py-2" onclick="filterData('Gugus 1')">Gugus 1</button>
+        <button class="nav-link px-4 py-2" onclick="setGugusFilter('Gugus 1')">Gugus 1</button>
       </li>
       <li class="nav-item">
-        <button class="nav-link px-4 py-2" onclick="filterData('Gugus 2')">Gugus 2</button>
+        <button class="nav-link px-4 py-2" onclick="setGugusFilter('Gugus 2')">Gugus 2</button>
       </li>
       <li class="nav-item">
-        <button class="nav-link px-4 py-2" onclick="filterData('Gugus 3')">Gugus 3</button>
+        <button class="nav-link px-4 py-2" onclick="setGugusFilter('Gugus 3')">Gugus 3</button>
       </li>
       <li class="nav-item">
-        <button class="nav-link px-4 py-2" onclick="filterData('Gugus 4')">Gugus 4</button>
+        <button class="nav-link px-4 py-2" onclick="setGugusFilter('Gugus 4')">Gugus 4</button>
       </li>
     </ul>
+
+    <!-- Filter Jenis Dokumen (Disesuaikan Presisi dengan Form: Draft / Revisi / Siap Ditetapkan) -->
+    <div class="d-flex justify-content-center gap-2 mb-4 flex-wrap" id="docTypeFilter">
+      <button class="btn btn-primary btn-filter-doc active" onclick="setDocFilter('Semua')">
+        <i class="fa-solid fa-layer-group me-1"></i> Semua Jenis Dokumen
+      </button>
+      <button class="btn btn-outline-secondary btn-filter-doc" onclick="setDocFilter('Draft KSP')">
+        <i class="fa-solid fa-file-lines me-1"></i> Draft KSP
+      </button>
+      <button class="btn btn-outline-warning text-dark btn-filter-doc" onclick="setDocFilter('KSP Hasil Revisi')">
+        <i class="fa-solid fa-rotate me-1"></i> KSP Hasil Revisi
+      </button>
+      <button class="btn btn-outline-success btn-filter-doc" onclick="setDocFilter('KSP Siap Ditetapkan')">
+        <i class="fa-solid fa-circle-check me-1"></i> KSP Siap Ditetapkan
+      </button>
+    </div>
 
     <!-- Area Tabel Data -->
     <div class="table-responsive p-3">
@@ -85,11 +102,12 @@
   </div>
 
   <script>
-    // UBAH DENGAN URL DEPLOYMENT GOOGLE APPS SCRIPT (GAS) KAMU
-    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxhnYPYvtldmfWPC1KsrMTvCCtdfw5Gzg_uP0q4RG7ByslyvyRiUL_ekkFnxXWiaw80/exec";
+    // MASUKKAN URL WEB APP GOOGLE APPS SCRIPT KAMU DI BAWAH INI
+    const GAS_API_URL = "PASANG_URL_WEB_APP_GAS_KAMU_DI_SINI";
 
     let rawData = [];
-    let currentFilter = "Semua";
+    let currentGugusFilter = "Semua";
+    let currentDocFilter = "Semua";
 
     // Ambil Data dari GAS
     async function loadData() {
@@ -108,11 +126,10 @@
       }
     }
 
-    // Filter Data Berdasarkan Gugus
-    function filterData(gugus) {
-      currentFilter = gugus;
+    // Filter Berdasarkan Gugus
+    function setGugusFilter(gugus) {
+      currentGugusFilter = gugus;
       
-      // Update tampilan tombol tab aktif
       const buttons = document.querySelectorAll('#gugusTab .nav-link');
       buttons.forEach(btn => {
         if (btn.innerText.includes(gugus)) {
@@ -125,21 +142,57 @@
       renderTable();
     }
 
+    // Filter Berdasarkan Jenis Dokumen
+    function setDocFilter(docType) {
+      currentDocFilter = docType;
+
+      const buttons = document.querySelectorAll('#docTypeFilter .btn');
+      buttons.forEach(btn => {
+        const btnText = btn.innerText.toLowerCase();
+        const targetText = docType.toLowerCase();
+
+        if (btnText.includes(targetText) || (docType === 'Semua' && btnText.includes('semua'))) {
+          btn.classList.add('active', 'btn-primary');
+          btn.classList.remove('btn-outline-secondary', 'btn-outline-warning', 'btn-outline-success', 'btn-outline-primary');
+        } else {
+          btn.classList.remove('active', 'btn-primary');
+          if (btnText.includes('draft')) btn.classList.add('btn-outline-secondary');
+          if (btnText.includes('revisi')) btn.classList.add('btn-outline-warning');
+          if (btnText.includes('siap')) btn.classList.add('btn-outline-success');
+          if (btnText.includes('semua')) btn.classList.add('btn-outline-primary');
+        }
+      });
+
+      renderTable();
+    }
+
     // Tampilkan Data ke Tabel
     function renderTable() {
       const tbody = document.getElementById('tableBody');
       tbody.innerHTML = "";
 
-      // Filter array data sesuai kolom "Gugus kerja"
-      const filtered = currentFilter === "Semua" 
-        ? rawData 
-        : rawData.filter(item => (item["Gugus kerja"] || "").toString().trim().toLowerCase() === currentFilter.toLowerCase());
+      // Filtering Bertingkat (Gugus AND Jenis Dokumen)
+      const filtered = rawData.filter(item => {
+        const matchGugus = currentGugusFilter === "Semua" || 
+          (item["Gugus kerja"] || "").toString().trim().toLowerCase() === currentGugusFilter.toLowerCase();
+        
+        const docText = (item["Jenis Dokumen"] || "").toString().trim().toLowerCase();
+        let matchDoc = true;
+
+        if (currentDocFilter !== "Semua") {
+          // Fleksibel pencocokan untuk Draft, Revisi, maupun Siap Ditetapkan
+          matchDoc = docText.includes(currentDocFilter.toLowerCase()) || 
+                     (currentDocFilter.includes("Draft") && docText.includes("draf"));
+        }
+
+        return matchGugus && matchDoc;
+      });
 
       if (filtered.length === 0) {
         tbody.innerHTML = `
           <tr>
             <td colspan="7" class="text-center py-4 text-muted">
-              Belum ada data pengumpulan KSP untuk ${currentFilter}.
+              Tidak ada data KSP yang cocok untuk filter saat ini.
             </td>
           </tr>`;
         return;
@@ -155,9 +208,9 @@
         const statusVal = (row["Status Validasi"] || "").trim();
         const feedback = (row["Umpan Balik pengawas"] || "").trim();
 
-        // 1. Logika Tampilan Status Validasi
+        // Status Validasi Visual
         let badgeStatus = `<span class="badge bg-secondary">Belum Divalidasi</span>`;
-        if (statusVal.toLowerCase().includes("tervalidasi") || statusVal.toLowerCase().includes("sesuai")) {
+        if (statusVal.toLowerCase().includes("tervalidasi") || statusVal.toLowerCase().includes("sesuai") || statusVal.toLowerCase().includes("siap")) {
           badgeStatus = `<span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>${statusVal}</span>`;
         } else if (statusVal.toLowerCase().includes("revisi") || statusVal.toLowerCase().includes("perbaikan")) {
           badgeStatus = `<span class="badge bg-warning text-dark"><i class="fa-solid fa-rotate me-1"></i>${statusVal}</span>`;
@@ -165,13 +218,12 @@
           badgeStatus = `<span class="badge bg-info text-dark">${statusVal}</span>`;
         }
 
-        // 2. Logika Tampilan Umpan Balik Pengawas
+        // Umpan Balik Pengawas
         let feedbackContent = `<span class="badge badge-feedback-empty px-3 py-2">Belum ada umpan balik</span>`;
         if (feedback !== "") {
           feedbackContent = `<div class="p-2 bg-light border rounded text-dark small"><i class="fa-regular fa-comment-dots me-1 text-primary"></i>${feedback}</div>`;
         }
 
-        // Render Baris Tabel
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${index + 1}</td>
@@ -180,9 +232,9 @@
             <div class="text-muted small">NPSN: ${npsn} | KS: ${ks}</div>
           </td>
           <td><span class="badge bg-outline-primary border text-primary">${gugus}</span></td>
-          <td>${jenisDoc}</td>
+          <td><span class="badge bg-light text-dark border">${jenisDoc}</span></td>
           <td>
-            ${linkDoc !== "#" 
+            ${linkDoc !== "#" && linkDoc !== "" 
               ? `<a href="${linkDoc}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-file-pdf me-1"></i>Lihat Dokumen</a>`
               : `<span class="text-muted small">Tidak ada berkas</span>`
             }
@@ -194,7 +246,6 @@
       });
     }
 
-    // Jalankan pertama kali saat halaman dimuat
     loadData();
   </script>
 </body>
