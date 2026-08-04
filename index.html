@@ -15,6 +15,8 @@
     .table-responsive { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     .nav-pills .nav-link.active { background-color: #0d6efd; font-weight: 600; }
     .btn-filter-doc { border-radius: 20px; font-size: 0.875rem; font-weight: 500; }
+    .btn-ai-gen { background-color: #6f42c1; color: white; border: none; }
+    .btn-ai-gen:hover { background-color: #59359a; color: white; }
   </style>
 </head>
 <body>
@@ -80,7 +82,7 @@
             <th scope="col">Jenis Dokumen</th>
             <th scope="col">Berkas KSP</th>
             <th scope="col">Status Validasi</th>
-            <th scope="col">Umpan Balik Pengawas</th>
+            <th scope="col">Umpan Balik & Aksion AI</th>
           </tr>
         </thead>
         <tbody id="tableBody">
@@ -98,7 +100,7 @@
 
   <!-- Modal Pop-up untuk Umpan Balik -->
   <div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
         <div class="modal-header bg-primary text-white">
           <h5 class="modal-title" id="feedbackModalLabel"><i class="fa-regular fa-comment-dots me-2"></i>Umpan Balik Pengawas</h5>
@@ -119,7 +121,7 @@
     </div>
   </div>
 
-  <!-- Bootstrap 5 JS Bundle (Wajib disertakan untuk Modal) -->
+  <!-- Bootstrap 5 JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
@@ -224,14 +226,20 @@
           badgeStatus = `<span class="badge bg-info text-dark">${statusVal}</span>`;
         }
 
-        // Tombol Lihat Umpan Balik
-        let feedbackContent = `<span class="badge badge-feedback-empty px-3 py-2">Belum ada umpan balik</span>`;
-        if (feedback !== "") {
-          feedbackContent = `
-            <button class="btn btn-sm btn-info text-white shadow-sm" onclick="showFeedbackModal('${encodeURIComponent(sekolah)}', '${encodeURIComponent(jenisDoc)}', '${encodeURIComponent(feedback)}')">
-              <i class="fa-regular fa-comment-dots me-1"></i> Lihat Umpan Balik
-            </button>`;
-        }
+        // Tombol Lihat Umpan Balik & Aksion Generate AI
+        let feedbackContent = `
+          <div class="d-flex flex-column gap-2 align-items-start">
+            ${feedback !== "" 
+              ? `<button class="btn btn-sm btn-info text-white shadow-sm" onclick="showFeedbackModal('${encodeURIComponent(sekolah)}', '${encodeURIComponent(jenisDoc)}', '${encodeURIComponent(feedback)}')">
+                   <i class="fa-regular fa-comment-dots me-1"></i> Lihat Umpan Balik
+                 </button>`
+              : `<span class="badge badge-feedback-empty px-2 py-1">Belum ada umpan balik</span>`
+            }
+            <button class="btn btn-sm btn-ai-gen shadow-sm" onclick="triggerAiValidation('${npsn}', this)">
+              <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Generate AI
+            </button>
+          </div>
+        `;
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -255,11 +263,50 @@
       });
     }
 
-    // Fungsi untuk menampilkan Modal Umpan Balik
+    // Fungsi untuk memicu penelaahan Gemini AI
+    async function triggerAiValidation(npsn, btnElement) {
+      if (!confirm("Apakah Anda yakin ingin menganalisis ulang dokumen ini dengan Gemini AI?")) return;
+
+      const originalHtml = btnElement.innerHTML;
+      btnElement.disabled = true;
+      btnElement.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Menganalisis...`;
+
+      try {
+        const formData = new URLSearchParams();
+        formData.append('action', 'generateAiFeedback');
+        formData.append('npsn', npsn);
+
+        const response = await fetch(GAS_API_URL, {
+          method: 'POST',
+          body: formData
+        });
+
+        const result = await response.json();
+        if (result.status === 'success') {
+          alert('Umpan balik AI berhasil diperbarui!');
+          loadData();
+        } else {
+          alert('Gagal: ' + (result.message || 'Terjadi kesalahan pada server AI.'));
+          btnElement.disabled = false;
+          btnElement.innerHTML = originalHtml;
+        }
+      } catch (error) {
+        alert('Terjadi kesalahan koneksi saat memproses AI.');
+        btnElement.disabled = false;
+        btnElement.innerHTML = originalHtml;
+      }
+    }
+
+    // Fungsi untuk menampilkan Modal Umpan Balik dengan Pemformatan Bold Teks
     function showFeedbackModal(sekolah, jenisDoc, feedback) {
       document.getElementById('modalSekolahName').innerText = decodeURIComponent(sekolah);
       document.getElementById('modalDocType').innerText = "Jenis Dokumen: " + decodeURIComponent(jenisDoc);
-      document.getElementById('modalFeedbackText').innerText = decodeURIComponent(feedback);
+      
+      // Ubah teks format markdown **teks** menjadi <b>teks</b>
+      let formattedFeedback = decodeURIComponent(feedback)
+        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+
+      document.getElementById('modalFeedbackText').innerHTML = formattedFeedback;
 
       const feedbackModal = new bootstrap.Modal(document.getElementById('feedbackModal'));
       feedbackModal.show();
