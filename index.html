@@ -82,7 +82,7 @@
             <th scope="col">Jenis Dokumen</th>
             <th scope="col">Berkas KSP</th>
             <th scope="col">Status Validasi</th>
-            <th scope="col">Umpan Balik & Aksion AI</th>
+            <th scope="col">Umpan Balik & Aksi AI</th>
           </tr>
         </thead>
         <tbody id="tableBody">
@@ -125,13 +125,15 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
+    // Ganti URL ini setelah deploy ulang Web App
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbyR4jXgEI31NWWVIUQm8dMaZ-g4S59s5arcmCLYcy_4OE3G5-ifjKAD-N7KTVGLShQ/exec";
+    
     let rawData = [];
     let currentGugusFilter = "Semua";
     let currentDocFilter = "Semua";
 
     /**
-     * Helper untuk mengambil nilai properti secara flexible (tahan variasi spasi / huruf kapital)
+     * Helper untuk mengambil nilai properti secara flexible
      */
     function getValue(obj, targetKey) {
       if (!obj) return "";
@@ -154,7 +156,7 @@
           <tr>
             <td colspan="7" class="text-center text-danger py-4">
               <i class="fa-solid fa-triangle-exclamation fs-3 mb-2"></i><br>
-              Gagal memuat data. Pastikan URL Google Apps Script sudah benar.
+              Gagal memuat data. Pastikan URL Google Apps Script sudah benar dan sudah di-deploy ulang.
             </td>
           </tr>`;
       }
@@ -227,7 +229,6 @@
         const gugus = getValue(row, "Gugus kerja") || getValue(row, "Gugus") || "-";
         const jenisDoc = getValue(row, "Jenis Dokumen") || "-";
         
-        // Pencarian Tautan Berkas Fleksibel
         const linkDoc = getValue(row, "Unggah Berkas Dokumen KSP") || getValue(row, "Berkas KSP") || getValue(row, "Link Berkas") || getValue(row, "Unggah Berkas") || "";
         
         const statusVal = (getValue(row, "Status Validasi") || "").toString().trim();
@@ -243,7 +244,7 @@
           badgeStatus = `<span class="badge bg-info text-dark">${statusVal}</span>`;
         }
 
-        // Tombol Lihat Umpan Balik & Aksion Generate AI
+        // Tombol Lihat Umpan Balik & Generate AI
         let feedbackContent = `
           <div class="d-flex flex-column gap-2 align-items-start">
             ${feedback !== "" 
@@ -258,7 +259,6 @@
           </div>
         `;
 
-        // Pengecekan Keberadaan URL Berkas
         const isValidLink = linkDoc && linkDoc.trim() !== "" && linkDoc.trim() !== "#" && linkDoc.trim() !== "-" && linkDoc.toLowerCase().startsWith("http");
 
         const tr = document.createElement('tr');
@@ -299,8 +299,9 @@
         });
 
         const result = await response.json();
+        
         if (result.status === 'success') {
-          alert('Umpan balik AI berhasil diperbarui!');
+          alert('Umpan balik AI berhasil diperbarui!\n\nStatus: ' + (result.aiStatus || '') + '\n\nSilakan refresh data.');
           loadData();
         } else {
           alert('Gagal: ' + (result.message || 'Terjadi kesalahan pada server AI.'));
@@ -308,7 +309,8 @@
           btnElement.innerHTML = originalHtml;
         }
       } catch (error) {
-        alert('Terjadi kesalahan koneksi. Pastikan Web App Apps Script sudah dideploy ulang dengan akses "Anyone" (Siapa Saja).');
+        console.error(error);
+        alert('Terjadi kesalahan koneksi. Pastikan Web App Apps Script sudah dideploy ulang dengan akses "Anyone".');
         btnElement.disabled = false;
         btnElement.innerHTML = originalHtml;
       }
@@ -328,6 +330,7 @@
       feedbackModal.show();
     }
 
+    // Load data saat halaman dibuka
     loadData();
   </script>
 </body>
