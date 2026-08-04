@@ -263,7 +263,7 @@
       });
     }
 
-    // Fungsi untuk memicu penelaahan Gemini AI
+    // Fungsi untuk memicu penelaahan Gemini AI (dengan perbaikan isu koneksi/CORS)
     async function triggerAiValidation(npsn, btnElement) {
       if (!confirm("Apakah Anda yakin ingin menganalisis ulang dokumen ini dengan Gemini AI?")) return;
 
@@ -272,13 +272,10 @@
       btnElement.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Menganalisis...`;
 
       try {
-        const formData = new URLSearchParams();
-        formData.append('action', 'generateAiFeedback');
-        formData.append('npsn', npsn);
+        const targetUrl = `${GAS_API_URL}?action=generateAiFeedback&npsn=${encodeURIComponent(npsn)}`;
 
-        const response = await fetch(GAS_API_URL, {
-          method: 'POST',
-          body: formData
+        const response = await fetch(targetUrl, {
+          method: 'POST'
         });
 
         const result = await response.json();
@@ -291,18 +288,17 @@
           btnElement.innerHTML = originalHtml;
         }
       } catch (error) {
-        alert('Terjadi kesalahan koneksi saat memproses AI.');
+        alert('Terjadi kesalahan koneksi. Pastikan Web App Apps Script sudah dideploy ulang dengan akses "Anyone" (Siapa Saja).');
         btnElement.disabled = false;
         btnElement.innerHTML = originalHtml;
       }
     }
 
-    // Fungsi untuk menampilkan Modal Umpan Balik dengan Pemformatan Bold Teks
+    // Fungsi untuk menampilkan Modal Umpan Balik
     function showFeedbackModal(sekolah, jenisDoc, feedback) {
       document.getElementById('modalSekolahName').innerText = decodeURIComponent(sekolah);
       document.getElementById('modalDocType').innerText = "Jenis Dokumen: " + decodeURIComponent(jenisDoc);
       
-      // Ubah teks format markdown **teks** menjadi <b>teks</b>
       let formattedFeedback = decodeURIComponent(feedback)
         .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
 
