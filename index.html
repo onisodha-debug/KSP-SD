@@ -227,7 +227,11 @@
         const gugus = getValue(row, "Gugus kerja") || getValue(row, "Gugus") || "-";
         const jenisDoc = getValue(row, "Jenis Dokumen") || "-";
         
-        const linkDoc = getValue(row, "Unggah Berkas Dokumen KSP") || getValue(row, "Berkas KSP") || getValue(row, "Link Berkas") || getValue(row, "Unggah Berkas") || "";
+        const linkDoc = getValue(row, "Tautan Google Doc. Dokumen KSP") || 
+                getValue(row, "Unggah Berkas Dokumen KSP") || 
+                getValue(row, "Berkas KSP") || 
+                getValue(row, "Link Berkas") || 
+                getValue(row, "Unggah Berkas") || "";
         
         const statusVal = (getValue(row, "Status Validasi") || "").toString().trim();
         const feedback = (getValue(row, "Umpan Balik pengawas") || getValue(row, "Umpan Balik") || "").toString().trim();
