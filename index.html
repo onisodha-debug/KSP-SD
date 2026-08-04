@@ -130,6 +130,20 @@
     let currentGugusFilter = "Semua";
     let currentDocFilter = "Semua";
 
+    /**
+     * Helper untuk mengambil nilai properti secara flexible (tahan variasi spasi / huruf kapital)
+     */
+    function getValue(obj, targetKey) {
+      if (!obj) return "";
+      const normalizedTarget = targetKey.toLowerCase().replace(/\s+/g, '');
+      for (let key in obj) {
+        if (key.toLowerCase().replace(/\s+/g, '') === normalizedTarget) {
+          return obj[key];
+        }
+      }
+      return "";
+    }
+
     async function loadData() {
       try {
         const response = await fetch(GAS_API_URL);
@@ -184,10 +198,10 @@
       tbody.innerHTML = "";
 
       const filtered = rawData.filter(item => {
-        const matchGugus = currentGugusFilter === "Semua" || 
-          (item["Gugus kerja"] || "").toString().trim().toLowerCase() === currentGugusFilter.toLowerCase();
+        const gugusVal = (getValue(item, "Gugus kerja") || getValue(item, "Gugus") || "").toString().trim().toLowerCase();
+        const matchGugus = currentGugusFilter === "Semua" || gugusVal === currentGugusFilter.toLowerCase();
         
-        const docText = (item["Jenis Dokumen"] || "").toString().trim().toLowerCase();
+        const docText = (getValue(item, "Jenis Dokumen") || "").toString().trim().toLowerCase();
         let matchDoc = true;
         if (currentDocFilter !== "Semua") {
           matchDoc = docText.includes(currentDocFilter.toLowerCase()) || 
@@ -207,14 +221,17 @@
       }
 
       filtered.forEach((row, index) => {
-        const sekolah = row["Nama Satuan Pendidikan"] || "-";
-        const npsn = row["NPSN"] || "-";
-        const ks = row["Nama Lengkap Kepala Sekolah"] || "-";
-        const gugus = row["Gugus kerja"] || "-";
-        const jenisDoc = row["Jenis Dokumen"] || "-";
-        const linkDoc = row["Unggah Berkas Dokumen KSP"] || "#";
-        const statusVal = (row["Status Validasi"] || "").trim();
-        const feedback = (row["Umpan Balik pengawas"] || "").trim();
+        const sekolah = getValue(row, "Nama Satuan Pendidikan") || "-";
+        const npsn = getValue(row, "NPSN") || "-";
+        const ks = getValue(row, "Nama Lengkap Kepala Sekolah") || getValue(row, "Kepala Sekolah") || "-";
+        const gugus = getValue(row, "Gugus kerja") || getValue(row, "Gugus") || "-";
+        const jenisDoc = getValue(row, "Jenis Dokumen") || "-";
+        
+        // Pencarian Tautan Berkas Fleksibel
+        const linkDoc = getValue(row, "Unggah Berkas Dokumen KSP") || getValue(row, "Berkas KSP") || getValue(row, "Link Berkas") || getValue(row, "Unggah Berkas") || "";
+        
+        const statusVal = (getValue(row, "Status Validasi") || "").toString().trim();
+        const feedback = (getValue(row, "Umpan Balik pengawas") || getValue(row, "Umpan Balik") || "").toString().trim();
 
         // Status Validasi Visual
         let badgeStatus = `<span class="badge bg-secondary">Belum Divalidasi</span>`;
@@ -241,6 +258,9 @@
           </div>
         `;
 
+        // Pengecekan Keberadaan URL Berkas
+        const isValidLink = linkDoc && linkDoc.trim() !== "" && linkDoc.trim() !== "#" && linkDoc.trim() !== "-" && linkDoc.toLowerCase().startsWith("http");
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${index + 1}</td>
@@ -251,7 +271,7 @@
           <td><span class="badge bg-outline-primary border text-primary">${gugus}</span></td>
           <td><span class="badge bg-light text-dark border">${jenisDoc}</span></td>
           <td>
-            ${linkDoc !== "#" && linkDoc !== "" 
+            ${isValidLink 
               ? `<a href="${linkDoc}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-file-pdf me-1"></i>Lihat Dokumen</a>`
               : `<span class="text-muted small">Tidak ada berkas</span>`
             }
@@ -263,7 +283,7 @@
       });
     }
 
-    // Fungsi untuk memicu penelaahan Gemini AI (dengan perbaikan isu koneksi/CORS)
+    // Fungsi untuk memicu penelaahan Gemini AI
     async function triggerAiValidation(npsn, btnElement) {
       if (!confirm("Apakah Anda yakin ingin menganalisis ulang dokumen ini dengan Gemini AI?")) return;
 
