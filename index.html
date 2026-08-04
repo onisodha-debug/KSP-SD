@@ -18,26 +18,22 @@
   </style>
 </head>
 <body>
-
   <!-- Header & Akses Cepat -->
   <div class="hero-header p-4 p-md-5 mb-4 text-center">
     <h2 class="fw-bold mb-2"><i class="fa-solid fa-file-signature me-2"></i>Monitoring & Validasi KSP</h2>
     <p class="mb-4 opacity-75">Sistem Informasi Pengumpulan dan Validasi Kurikulum Satuan Pendidikan</p>
     
     <div class="d-flex justify-content-center gap-3 flex-wrap">
-      <!-- PASTE LINK GOOGLE FORM UPLOAD GURU DI BAWAH INI -->
       <a href="https://forms.gle/c2XioiAmETwb6dub7" target="_blank" class="btn btn-light btn-lg fw-semibold shadow-sm">
         <i class="fa-solid fa-cloud-arrow-up text-primary me-2"></i>Upload Dokumen KSP
       </a>
-      <!-- PASTE LINK GOOGLE FORM / SHEET VALIDASI PENGAWAS DI BAWAH INI -->
       <a href="https://docs.google.com/spreadsheets/d/1mCKVQ584Kw0EQCoi71rd13Oy29exLlNTnh2_y1oektY/edit?usp=sharing" target="_blank" class="btn btn-warning btn-lg fw-semibold shadow-sm text-dark">
         <i class="fa-solid fa-user-check me-2"></i>Validasi Pengawas
       </a>
     </div>
   </div>
-
+  
   <div class="container my-4">
-    
     <!-- Tab Navigasi Gugus Utama -->
     <ul class="nav nav-pills justify-content-center mb-3 gap-2" id="gugusTab" role="tablist">
       <li class="nav-item">
@@ -57,7 +53,7 @@
       </li>
     </ul>
 
-    <!-- Filter Jenis Dokumen (Disesuaikan Presisi dengan Form: Draft / Revisi / Siap Ditetapkan) -->
+    <!-- Filter Jenis Dokumen -->
     <div class="d-flex justify-content-center gap-2 mb-4 flex-wrap" id="docTypeFilter">
       <button class="btn btn-primary btn-filter-doc active" onclick="setDocFilter('Semua')">
         <i class="fa-solid fa-layer-group me-1"></i> Semua Jenis Dokumen
@@ -98,18 +94,40 @@
         </tbody>
       </table>
     </div>
-
   </div>
 
-  <script>
-    // MASUKKAN URL WEB APP GOOGLE APPS SCRIPT KAMU DI BAWAH INI
-    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxhnYPYvtldmfWPC1KsrMTvCCtdfw5Gzg_uP0q4RG7ByslyvyRiUL_ekkFnxXWiaw80/exec";
+  <!-- Modal Pop-up untuk Umpan Balik -->
+  <div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="feedbackModalLabel"><i class="fa-regular fa-comment-dots me-2"></i>Umpan Balik Pengawas</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <h6 class="fw-bold mb-1" id="modalSekolahName">-</h6>
+          <p class="text-muted small mb-3" id="modalDocType">-</p>
+          <hr>
+          <div class="p-3 bg-light border rounded text-dark" id="modalFeedbackText" style="white-space: pre-line;">
+            -
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
+  <!-- Bootstrap 5 JS Bundle (Wajib disertakan untuk Modal) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxhnYPYvtldmfWPC1KsrMTvCCtdfw5Gzg_uP0q4RG7ByslyvyRiUL_ekkFnxXWiaw80/exec";
     let rawData = [];
     let currentGugusFilter = "Semua";
     let currentDocFilter = "Semua";
 
-    // Ambil Data dari GAS
     async function loadData() {
       try {
         const response = await fetch(GAS_API_URL);
@@ -126,10 +144,8 @@
       }
     }
 
-    // Filter Berdasarkan Gugus
     function setGugusFilter(gugus) {
       currentGugusFilter = gugus;
-      
       const buttons = document.querySelectorAll('#gugusTab .nav-link');
       buttons.forEach(btn => {
         if (btn.innerText.includes(gugus)) {
@@ -138,19 +154,15 @@
           btn.classList.remove('active');
         }
       });
-
       renderTable();
     }
 
-    // Filter Berdasarkan Jenis Dokumen
     function setDocFilter(docType) {
       currentDocFilter = docType;
-
       const buttons = document.querySelectorAll('#docTypeFilter .btn');
       buttons.forEach(btn => {
         const btnText = btn.innerText.toLowerCase();
         const targetText = docType.toLowerCase();
-
         if (btnText.includes(targetText) || (docType === 'Semua' && btnText.includes('semua'))) {
           btn.classList.add('active', 'btn-primary');
           btn.classList.remove('btn-outline-secondary', 'btn-outline-warning', 'btn-outline-success', 'btn-outline-primary');
@@ -162,29 +174,23 @@
           if (btnText.includes('semua')) btn.classList.add('btn-outline-primary');
         }
       });
-
       renderTable();
     }
 
-    // Tampilkan Data ke Tabel
     function renderTable() {
       const tbody = document.getElementById('tableBody');
       tbody.innerHTML = "";
 
-      // Filtering Bertingkat (Gugus AND Jenis Dokumen)
       const filtered = rawData.filter(item => {
         const matchGugus = currentGugusFilter === "Semua" || 
           (item["Gugus kerja"] || "").toString().trim().toLowerCase() === currentGugusFilter.toLowerCase();
         
         const docText = (item["Jenis Dokumen"] || "").toString().trim().toLowerCase();
         let matchDoc = true;
-
         if (currentDocFilter !== "Semua") {
-          // Fleksibel pencocokan untuk Draft, Revisi, maupun Siap Ditetapkan
           matchDoc = docText.includes(currentDocFilter.toLowerCase()) || 
                      (currentDocFilter.includes("Draft") && docText.includes("draf"));
         }
-
         return matchGugus && matchDoc;
       });
 
@@ -218,10 +224,13 @@
           badgeStatus = `<span class="badge bg-info text-dark">${statusVal}</span>`;
         }
 
-        // Umpan Balik Pengawas
+        // Tombol Lihat Umpan Balik
         let feedbackContent = `<span class="badge badge-feedback-empty px-3 py-2">Belum ada umpan balik</span>`;
         if (feedback !== "") {
-          feedbackContent = `<div class="p-2 bg-light border rounded text-dark small"><i class="fa-regular fa-comment-dots me-1 text-primary"></i>${feedback}</div>`;
+          feedbackContent = `
+            <button class="btn btn-sm btn-info text-white shadow-sm" onclick="showFeedbackModal('${encodeURIComponent(sekolah)}', '${encodeURIComponent(jenisDoc)}', '${encodeURIComponent(feedback)}')">
+              <i class="fa-regular fa-comment-dots me-1"></i> Lihat Umpan Balik
+            </button>`;
         }
 
         const tr = document.createElement('tr');
@@ -244,6 +253,16 @@
         `;
         tbody.appendChild(tr);
       });
+    }
+
+    // Fungsi untuk menampilkan Modal Umpan Balik
+    function showFeedbackModal(sekolah, jenisDoc, feedback) {
+      document.getElementById('modalSekolahName').innerText = decodeURIComponent(sekolah);
+      document.getElementById('modalDocType').innerText = "Jenis Dokumen: " + decodeURIComponent(jenisDoc);
+      document.getElementById('modalFeedbackText').innerText = decodeURIComponent(feedback);
+
+      const feedbackModal = new bootstrap.Modal(document.getElementById('feedbackModal'));
+      feedbackModal.show();
     }
 
     loadData();
