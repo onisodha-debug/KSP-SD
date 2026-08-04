@@ -86,7 +86,6 @@
           </tr>
         </thead>
         <tbody id="tableBody">
-          <!-- Loading State -->
           <tr>
             <td colspan="7" class="text-center py-5">
               <div class="spinner-border text-primary" role="status"></div>
@@ -110,7 +109,7 @@
           <h6 class="fw-bold mb-1" id="modalSekolahName">-</h6>
           <p class="text-muted small mb-3" id="modalDocType">-</p>
           <hr>
-          <div class="p-3 bg-light border rounded text-dark" id="modalFeedbackText" style="white-space: pre-line;">
+          <div class="p-3 bg-light border rounded text-dark" id="modalFeedbackText" style="white-space: pre-line; max-height: 60vh; overflow-y: auto;">
             -
           </div>
         </div>
@@ -126,7 +125,7 @@
 
   <script>
     // ==============================
-    // GANTI URL INI dengan URL Web App terbaru setelah deploy
+    // GANTI URL INI dengan URL Web App terbaru
     // ==============================
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwzUYcRo21NiJDmsCfBzyB0iDA3PlYW3fnwVZoZeqj5oCa0C0eTXVn_j80TKOLLxNK-/exec";
     
@@ -134,9 +133,6 @@
     let currentGugusFilter = "Semua";
     let currentDocFilter = "Semua";
 
-    /**
-     * Helper untuk mengambil nilai properti secara flexible
-     */
     function getValue(obj, targetKey) {
       if (!obj) return "";
       const normalizedTarget = targetKey.toLowerCase().replace(/\s+/g, '');
@@ -158,7 +154,7 @@
           <tr>
             <td colspan="7" class="text-center text-danger py-4">
               <i class="fa-solid fa-triangle-exclamation fs-3 mb-2"></i><br>
-              Gagal memuat data. Pastikan URL Google Apps Script sudah benar dan sudah di-deploy ulang.
+              Gagal memuat data. Pastikan URL Google Apps Script sudah benar.
             </td>
           </tr>`;
       }
@@ -238,7 +234,7 @@
 
         // Status Validasi Visual
         let badgeStatus = `<span class="badge bg-secondary">Belum Divalidasi</span>`;
-        if (statusVal.toLowerCase().includes("tervalidasi") || statusVal.toLowerCase().includes("sesuai") || statusVal.toLowerCase().includes("siap")) {
+        if (statusVal.toLowerCase().includes("disetujui") || statusVal.toLowerCase().includes("tervalidasi") || statusVal.toLowerCase().includes("sesuai")) {
           badgeStatus = `<span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>${statusVal}</span>`;
         } else if (statusVal.toLowerCase().includes("revisi") || statusVal.toLowerCase().includes("perbaikan")) {
           badgeStatus = `<span class="badge bg-warning text-dark"><i class="fa-solid fa-rotate me-1"></i>${statusVal}</span>`;
@@ -246,11 +242,15 @@
           badgeStatus = `<span class="badge bg-info text-dark">${statusVal}</span>`;
         }
 
-        // Tombol Lihat Umpan Balik & Generate AI
+        // Tombol Lihat Umpan Balik & Generate AI (versi aman untuk feedback panjang)
         let feedbackContent = `
           <div class="d-flex flex-column gap-2 align-items-start">
             ${feedback !== "" 
-              ? `<button class="btn btn-sm btn-info text-white shadow-sm" onclick="showFeedbackModal('${encodeURIComponent(sekolah)}', '${encodeURIComponent(jenisDoc)}', '${encodeURIComponent(feedback)}')">
+              ? `<button class="btn btn-sm btn-info text-white shadow-sm" 
+                         data-sekolah="${encodeURIComponent(sekolah)}"
+                         data-jenis="${encodeURIComponent(jenisDoc)}"
+                         data-feedback="${encodeURIComponent(feedback)}"
+                         onclick="showFeedbackModalFromBtn(this)">
                    <i class="fa-regular fa-comment-dots me-1"></i> Lihat Umpan Balik
                  </button>`
               : `<span class="badge badge-feedback-empty px-2 py-1">Belum ada umpan balik</span>`
@@ -285,9 +285,7 @@
       });
     }
 
-    /**
-     * Fungsi Generate AI (menggunakan GET agar tidak kena CORS)
-     */
+    // Fungsi Generate AI
     async function triggerAiValidation(npsn, btnElement) {
       if (!confirm("Apakah Anda yakin ingin menganalisis ulang dokumen ini dengan Gemini AI?")) return;
 
@@ -296,15 +294,13 @@
       btnElement.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Menganalisis...`;
 
       try {
-        // Gunakan GET (paling stabil untuk Apps Script)
         const targetUrl = `${GAS_API_URL}?action=generateAiFeedback&npsn=${encodeURIComponent(npsn)}`;
-
         const response = await fetch(targetUrl);
         const result = await response.json();
         
         if (result.status === 'success') {
           alert('Umpan balik AI berhasil diperbarui!\n\nStatus: ' + (result.aiStatus || ''));
-          loadData(); // refresh data
+          loadData();
         } else {
           alert('Gagal: ' + (result.message || 'Terjadi kesalahan pada server AI.'));
           btnElement.disabled = false;
@@ -318,13 +314,22 @@
       }
     }
 
-    // Fungsi untuk menampilkan Modal Umpan Balik
+    // Fungsi modal dari tombol (versi aman)
+    function showFeedbackModalFromBtn(btn) {
+      const sekolah = btn.getAttribute('data-sekolah');
+      const jenisDoc = btn.getAttribute('data-jenis');
+      const feedback = btn.getAttribute('data-feedback');
+      showFeedbackModal(sekolah, jenisDoc, feedback);
+    }
+
+    // Fungsi menampilkan Modal Umpan Balik
     function showFeedbackModal(sekolah, jenisDoc, feedback) {
       document.getElementById('modalSekolahName').innerText = decodeURIComponent(sekolah);
       document.getElementById('modalDocType').innerText = "Jenis Dokumen: " + decodeURIComponent(jenisDoc);
       
       let formattedFeedback = decodeURIComponent(feedback)
-        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+        .replace(/\n/g, '<br>');
 
       document.getElementById('modalFeedbackText').innerHTML = formattedFeedback;
 
