@@ -125,7 +125,9 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    // Ganti URL ini setelah deploy ulang Web App
+    // ==============================
+    // GANTI URL INI dengan URL Web App terbaru setelah deploy
+    // ==============================
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbyR4jXgEI31NWWVIUQm8dMaZ-g4S59s5arcmCLYcy_4OE3G5-ifjKAD-N7KTVGLShQ/exec";
     
     let rawData = [];
@@ -283,7 +285,9 @@
       });
     }
 
-    // Fungsi untuk memicu penelaahan Gemini AI
+    /**
+     * Fungsi Generate AI (menggunakan GET agar tidak kena CORS)
+     */
     async function triggerAiValidation(npsn, btnElement) {
       if (!confirm("Apakah Anda yakin ingin menganalisis ulang dokumen ini dengan Gemini AI?")) return;
 
@@ -292,17 +296,15 @@
       btnElement.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Menganalisis...`;
 
       try {
+        // Gunakan GET (paling stabil untuk Apps Script)
         const targetUrl = `${GAS_API_URL}?action=generateAiFeedback&npsn=${encodeURIComponent(npsn)}`;
 
-        const response = await fetch(targetUrl, {
-          method: 'POST'
-        });
-
+        const response = await fetch(targetUrl);
         const result = await response.json();
         
         if (result.status === 'success') {
-          alert('Umpan balik AI berhasil diperbarui!\n\nStatus: ' + (result.aiStatus || '') + '\n\nSilakan refresh data.');
-          loadData();
+          alert('Umpan balik AI berhasil diperbarui!\n\nStatus: ' + (result.aiStatus || ''));
+          loadData(); // refresh data
         } else {
           alert('Gagal: ' + (result.message || 'Terjadi kesalahan pada server AI.'));
           btnElement.disabled = false;
