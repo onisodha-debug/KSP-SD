@@ -15,8 +15,6 @@
     .table-responsive { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     .nav-pills .nav-link.active { background-color: #0d6efd; font-weight: 600; }
     .btn-filter-doc { border-radius: 20px; font-size: 0.875rem; font-weight: 500; }
-    .btn-ai-gen { background-color: #6f42c1; color: white; border: none; }
-    .btn-ai-gen:hover { background-color: #59359a; color: white; }
   </style>
 </head>
 <body>
@@ -82,10 +80,11 @@
             <th scope="col">Jenis Dokumen</th>
             <th scope="col">Berkas KSP</th>
             <th scope="col">Status Validasi</th>
-            <th scope="col">Umpan Balik & Aksi AI</th>
+            <th scope="col">Umpan Balik Pengawas</th>
           </tr>
         </thead>
         <tbody id="tableBody">
+          <!-- Loading State -->
           <tr>
             <td colspan="7" class="text-center py-5">
               <div class="spinner-border text-primary" role="status"></div>
@@ -99,7 +98,7 @@
 
   <!-- Modal Pop-up untuk Umpan Balik -->
   <div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header bg-primary text-white">
           <h5 class="modal-title" id="feedbackModalLabel"><i class="fa-regular fa-comment-dots me-2"></i>Umpan Balik Pengawas</h5>
@@ -109,7 +108,7 @@
           <h6 class="fw-bold mb-1" id="modalSekolahName">-</h6>
           <p class="text-muted small mb-3" id="modalDocType">-</p>
           <hr>
-          <div class="p-3 bg-light border rounded text-dark" id="modalFeedbackText" style="white-space: pre-line; max-height: 60vh; overflow-y: auto;">
+          <div class="p-3 bg-light border rounded text-dark" id="modalFeedbackText" style="white-space: pre-line;">
             -
           </div>
         </div>
@@ -120,26 +119,14 @@
     </div>
   </div>
 
-  <!-- Bootstrap 5 JS Bundle -->
+  <!-- Bootstrap 5 JS Bundle (Wajib disertakan untuk Modal) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
   <script>
-    // MASUKKAN URL WEB APP GOOGLE APPS SCRIPT HASIL DEPLOY DI SINI:
-    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzc1sDbB3f1H8AmDD3T1Rcaf-ICzFOf_OwPQ1RD9KmPWpC9zITd3N28QM7R1QBWFN83/exec";
-    
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxhnYPYvtldmfWPC1KsrMTvCCtdfw5Gzg_uP0q4RG7ByslyvyRiUL_ekkFnxXWiaw80/exec";
     let rawData = [];
     let currentGugusFilter = "Semua";
     let currentDocFilter = "Semua";
-
-    function getValue(obj, targetKey) {
-      if (!obj) return "";
-      const normalizedTarget = targetKey.toLowerCase().replace(/\s+/g, '');
-      for (let key in obj) {
-        if (key.toLowerCase().replace(/\s+/g, '') === normalizedTarget) {
-          return obj[key];
-        }
-      }
-      return "";
-    }
 
     async function loadData() {
       try {
@@ -151,7 +138,7 @@
           <tr>
             <td colspan="7" class="text-center text-danger py-4">
               <i class="fa-solid fa-triangle-exclamation fs-3 mb-2"></i><br>
-              Gagal memuat data. Pastikan URL Web App Apps Script sudah benar dan hak akses 'Anyone'.
+              Gagal memuat data. Pastikan URL Google Apps Script sudah benar.
             </td>
           </tr>`;
       }
@@ -195,10 +182,10 @@
       tbody.innerHTML = "";
 
       const filtered = rawData.filter(item => {
-        const gugusVal = (getValue(item, "Gugus kerja") || getValue(item, "Gugus") || "").toString().trim().toLowerCase();
-        const matchGugus = currentGugusFilter === "Semua" || gugusVal === currentGugusFilter.toLowerCase();
+        const matchGugus = currentGugusFilter === "Semua" || 
+          (item["Gugus kerja"] || "").toString().trim().toLowerCase() === currentGugusFilter.toLowerCase();
         
-        const docText = (getValue(item, "Jenis Dokumen") || "").toString().trim().toLowerCase();
+        const docText = (item["Jenis Dokumen"] || "").toString().trim().toLowerCase();
         let matchDoc = true;
         if (currentDocFilter !== "Semua") {
           matchDoc = docText.includes(currentDocFilter.toLowerCase()) || 
@@ -218,24 +205,18 @@
       }
 
       filtered.forEach((row, index) => {
-        const sekolah = getValue(row, "Nama Satuan Pendidikan") || "-";
-        const npsn = getValue(row, "NPSN") || "-";
-        const ks = getValue(row, "Nama Lengkap Kepala Sekolah") || getValue(row, "Kepala Sekolah") || "-";
-        const gugus = getValue(row, "Gugus kerja") || getValue(row, "Gugus") || "-";
-        const jenisDoc = getValue(row, "Jenis Dokumen") || "-";
-        
-        const linkDoc = getValue(row, "Tautan Google Doc. Dokumen KSP") || 
-                        getValue(row, "Unggah Berkas Dokumen KSP") || 
-                        getValue(row, "Berkas KSP") || 
-                        getValue(row, "Link Berkas") || 
-                        getValue(row, "Unggah Berkas") || "";
-        
-        const statusVal = (getValue(row, "Status Validasi") || "").toString().trim();
-        const feedback = (getValue(row, "Umpan Balik pengawas") || getValue(row, "Umpan Balik") || "").toString().trim();
+        const sekolah = row["Nama Satuan Pendidikan"] || "-";
+        const npsn = row["NPSN"] || "-";
+        const ks = row["Nama Lengkap Kepala Sekolah"] || "-";
+        const gugus = row["Gugus kerja"] || "-";
+        const jenisDoc = row["Jenis Dokumen"] || "-";
+        const linkDoc = row["Unggah Berkas Dokumen KSP"] || "#";
+        const statusVal = (row["Status Validasi"] || "").trim();
+        const feedback = (row["Umpan Balik pengawas"] || "").trim();
 
-        // Elemen Badge Status
+        // Status Validasi Visual
         let badgeStatus = `<span class="badge bg-secondary">Belum Divalidasi</span>`;
-        if (statusVal.toLowerCase().includes("disetujui") || statusVal.toLowerCase().includes("tervalidasi") || statusVal.toLowerCase().includes("sesuai")) {
+        if (statusVal.toLowerCase().includes("tervalidasi") || statusVal.toLowerCase().includes("sesuai") || statusVal.toLowerCase().includes("siap")) {
           badgeStatus = `<span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>${statusVal}</span>`;
         } else if (statusVal.toLowerCase().includes("revisi") || statusVal.toLowerCase().includes("perbaikan")) {
           badgeStatus = `<span class="badge bg-warning text-dark"><i class="fa-solid fa-rotate me-1"></i>${statusVal}</span>`;
@@ -243,26 +224,14 @@
           badgeStatus = `<span class="badge bg-info text-dark">${statusVal}</span>`;
         }
 
-        // Tombol Lihat Umpan Balik & Generate AI
-        let feedbackContent = `
-          <div class="d-flex flex-column gap-2 align-items-start">
-            ${feedback !== "" 
-              ? `<button class="btn btn-sm btn-info text-white shadow-sm" 
-                         data-sekolah="${encodeURIComponent(sekolah)}"
-                         data-jenis="${encodeURIComponent(jenisDoc)}"
-                         data-feedback="${encodeURIComponent(feedback)}"
-                         onclick="showFeedbackModalFromBtn(this)">
-                   <i class="fa-regular fa-comment-dots me-1"></i> Lihat Umpan Balik
-                 </button>`
-              : `<span class="badge badge-feedback-empty px-2 py-1">Belum ada umpan balik</span>`
-            }
-            <button class="btn btn-sm btn-ai-gen shadow-sm" onclick="triggerAiValidation('${npsn}', this)">
-              <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Generate AI
-            </button>
-          </div>
-        `;
-
-        const isValidLink = linkDoc && linkDoc.trim() !== "" && linkDoc.trim() !== "#" && linkDoc.trim() !== "-" && linkDoc.toLowerCase().startsWith("http");
+        // Tombol Lihat Umpan Balik
+        let feedbackContent = `<span class="badge badge-feedback-empty px-3 py-2">Belum ada umpan balik</span>`;
+        if (feedback !== "") {
+          feedbackContent = `
+            <button class="btn btn-sm btn-info text-white shadow-sm" onclick="showFeedbackModal('${encodeURIComponent(sekolah)}', '${encodeURIComponent(jenisDoc)}', '${encodeURIComponent(feedback)}')">
+              <i class="fa-regular fa-comment-dots me-1"></i> Lihat Umpan Balik
+            </button>`;
+        }
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -274,7 +243,7 @@
           <td><span class="badge bg-outline-primary border text-primary">${gugus}</span></td>
           <td><span class="badge bg-light text-dark border">${jenisDoc}</span></td>
           <td>
-            ${isValidLink 
+            ${linkDoc !== "#" && linkDoc !== "" 
               ? `<a href="${linkDoc}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-file-pdf me-1"></i>Lihat Dokumen</a>`
               : `<span class="text-muted small">Tidak ada berkas</span>`
             }
@@ -286,57 +255,18 @@
       });
     }
 
-    // Fungsi Trigger AI Validation
-    async function triggerAiValidation(npsn, btnElement) {
-      if (!confirm("Apakah Anda yakin ingin menganalisis dokumen ini dengan AI? Proses ekstraksi dan analisis mendalam membutuhkan waktu beberapa detik.")) return;
-      
-      const originalHtml = btnElement.innerHTML;
-      btnElement.disabled = true;
-      btnElement.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Menganalisis...`;
-
-      try {
-        const targetUrl = `${GAS_API_URL}?action=generateAiFeedback&npsn=${encodeURIComponent(npsn)}`;
-        const response = await fetch(targetUrl);
-        const result = await response.json();
-        
-        if (result.status === 'success') {
-          alert('Umpan balik AI berhasil diperbarui!\n\nDokumen Terbaca: ' + (result.documentRead ? 'YA' : 'TIDAK') + '\nStatus: ' + (result.aiStatus || ''));
-          loadData();
-        } else {
-          alert('Gagal: ' + (result.message || 'Terjadi kesalahan pada server AI.'));
-          btnElement.disabled = false;
-          btnElement.innerHTML = originalHtml;
-        }
-      } catch (error) {
-        console.error(error);
-        alert('Terjadi kesalahan koneksi. Pastikan URL Web App sudah dideploy ulang.');
-        btnElement.disabled = false;
-        btnElement.innerHTML = originalHtml;
-      }
-    }
-
-    function showFeedbackModalFromBtn(btn) {
-      const sekolah = btn.getAttribute('data-sekolah');
-      const jenisDoc = btn.getAttribute('data-jenis');
-      const feedback = btn.getAttribute('data-feedback');
-      showFeedbackModal(sekolah, jenisDoc, feedback);
-    }
-
+    // Fungsi untuk menampilkan Modal Umpan Balik
     function showFeedbackModal(sekolah, jenisDoc, feedback) {
       document.getElementById('modalSekolahName').innerText = decodeURIComponent(sekolah);
       document.getElementById('modalDocType').innerText = "Jenis Dokumen: " + decodeURIComponent(jenisDoc);
-      
-      let formattedFeedback = decodeURIComponent(feedback)
-        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
-        .replace(/\n/g, '<br>');
+      document.getElementById('modalFeedbackText').innerText = decodeURIComponent(feedback);
 
-      document.getElementById('modalFeedbackText').innerHTML = formattedFeedback;
       const feedbackModal = new bootstrap.Modal(document.getElementById('feedbackModal'));
       feedbackModal.show();
     }
 
-    // Load data otomatis saat pertama kali dibuka
     loadData();
   </script>
 </body>
 </html>
+
