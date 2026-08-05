@@ -18,6 +18,7 @@
   </style>
 </head>
 <body>
+
   <!-- Header & Akses Cepat -->
   <div class="hero-header p-4 p-md-5 mb-4 text-center">
     <h2 class="fw-bold mb-2"><i class="fa-solid fa-file-signature me-2"></i>Monitoring & Validasi KSP</h2>
@@ -27,9 +28,10 @@
       <a href="https://forms.gle/c2XioiAmETwb6dub7" target="_blank" class="btn btn-light btn-lg fw-semibold shadow-sm">
         <i class="fa-solid fa-cloud-arrow-up text-primary me-2"></i>Upload Dokumen KSP
       </a>
-      <a href="https://docs.google.com/spreadsheets/d/1mCKVQ584Kw0EQCoi71rd13Oy29exLlNTnh2_y1oektY/edit?usp=sharing" target="_blank" class="btn btn-warning btn-lg fw-semibold shadow-sm text-dark">
+      <!-- Tombol Aksi Pengawas -->
+      <button onclick="handleLoginClick()" id="btnAuthHeader" class="btn btn-warning btn-lg fw-semibold shadow-sm text-dark">
         <i class="fa-solid fa-user-check me-2"></i>Validasi Pengawas
-      </a>
+      </button>
     </div>
   </div>
   
@@ -81,12 +83,13 @@
             <th scope="col">Berkas KSP</th>
             <th scope="col">Status Validasi</th>
             <th scope="col">Umpan Balik Pengawas</th>
+            <th scope="col" id="thAksi" style="display:none;">Aksi Pengawas</th>
           </tr>
         </thead>
         <tbody id="tableBody">
           <!-- Loading State -->
           <tr>
-            <td colspan="7" class="text-center py-5">
+            <td colspan="8" class="text-center py-5">
               <div class="spinner-border text-primary" role="status"></div>
               <p class="mt-2 text-muted mb-0">Memuat data KSP...</p>
             </td>
@@ -96,21 +99,78 @@
     </div>
   </div>
 
-  <!-- Modal Pop-up untuk Umpan Balik -->
-  <div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
+  <!-- MODAL 1: Input PIN Akses Pengawas -->
+  <div class="modal fade" id="pinModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content">
+        <div class="modal-header bg-warning text-dark">
+          <h5 class="modal-title fs-6 fw-bold"><i class="fa-solid fa-lock me-2"></i>Akses Pengawas</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label small">Masukkan PIN Pengawas:</label>
+          <input type="password" id="inputPin" class="form-control" placeholder="****" onkeyup="if(event.key==='Enter') verifikasiPinLocal()">
+          <div id="pinError" class="text-danger small mt-2" style="display:none;">PIN tidak boleh kosong!</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-primary btn-sm" onclick="verifikasiPinLocal()">Masuk</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: Form Popup Input Validasi & Umpan Balik -->
+  <div class="modal fade" id="inputValidasiModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title" id="feedbackModalLabel"><i class="fa-regular fa-comment-dots me-2"></i>Umpan Balik Pengawas</h5>
+          <h5 class="modal-title fs-6 fw-bold"><i class="fa-solid fa-pen-to-square me-2"></i>Form Validasi KSP</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="valNpsn">
+          <div class="mb-2">
+            <h6 class="fw-bold text-primary mb-0" id="valSekolah">-</h6>
+            <small class="text-muted" id="valDocInfo">-</small>
+          </div>
+          <hr>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Status Validasi</label>
+            <select id="valStatus" class="form-select form-select-sm">
+              <option value="Belum Divalidasi">Belum Divalidasi</option>
+              <option value="Perlu Revisi">Perlu Revisi</option>
+              <option value="KSP Siap Ditetapkan">KSP Siap Ditetapkan</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Umpan Balik Pengawas</label>
+            <textarea id="valFeedback" class="form-control" rows="4" placeholder="Tulis catatan revisi atau saran pengawas..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-success btn-sm" id="btnSimpan" onclick="simpanValidasiToSheet()">
+            <i class="fa-solid fa-paper-plane me-1"></i> Simpan ke Sheet
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: View Feedback (Untuk Umum / Sekolah) -->
+  <div class="modal fade" id="feedbackModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title"><i class="fa-regular fa-comment-dots me-2"></i>Umpan Balik Pengawas</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <h6 class="fw-bold mb-1" id="modalSekolahName">-</h6>
           <p class="text-muted small mb-3" id="modalDocType">-</p>
           <hr>
-          <div class="p-3 bg-light border rounded text-dark" id="modalFeedbackText" style="white-space: pre-line;">
-            -
-          </div>
+          <div class="p-3 bg-light border rounded text-dark" id="modalFeedbackText" style="white-space: pre-line;">-</div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
@@ -119,14 +179,19 @@
     </div>
   </div>
 
-  <!-- Bootstrap 5 JS Bundle (Wajib disertakan untuk Modal) -->
+  <!-- Bootstrap 5 JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
+  
   <script>
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxhnYPYvtldmfWPC1KsrMTvCCtdfw5Gzg_uP0q4RG7ByslyvyRiUL_ekkFnxXWiaw80/exec";
+    
     let rawData = [];
     let currentGugusFilter = "Semua";
     let currentDocFilter = "Semua";
+    
+    // Variabel Sesi Login Pengawas
+    let isPengawas = false;
+    let savedPin = "";
 
     async function loadData() {
       try {
@@ -136,24 +201,54 @@
       } catch (error) {
         document.getElementById('tableBody').innerHTML = `
           <tr>
-            <td colspan="7" class="text-center text-danger py-4">
+            <td colspan="8" class="text-center text-danger py-4">
               <i class="fa-solid fa-triangle-exclamation fs-3 mb-2"></i><br>
-              Gagal memuat data. Pastikan URL Google Apps Script sudah benar.
+              Gagal memuat data. Pastikan Apps Script sudah di-deploy dengan benar.
             </td>
           </tr>`;
       }
     }
 
+    function handleLoginClick() {
+      if (isPengawas) {
+        if (confirm("Keluar dari Mode Pengawas?")) {
+          isPengawas = false;
+          savedPin = "";
+          document.getElementById('btnAuthHeader').innerHTML = `<i class="fa-solid fa-user-check me-2"></i>Validasi Pengawas`;
+          document.getElementById('btnAuthHeader').className = "btn btn-warning btn-lg fw-semibold shadow-sm text-dark";
+          document.getElementById('thAksi').style.display = "none";
+          renderTable();
+        }
+      } else {
+        document.getElementById('inputPin').value = "";
+        document.getElementById('pinError').style.display = "none";
+        new bootstrap.Modal(document.getElementById('pinModal')).show();
+      }
+    }
+
+    function verifikasiPinLocal() {
+      const pinVal = document.getElementById('inputPin').value.trim();
+      if (!pinVal) {
+        document.getElementById('pinError').style.display = "block";
+        return;
+      }
+      
+      savedPin = pinVal;
+      isPengawas = true;
+      
+      // Update UI Header & Tabel
+      document.getElementById('btnAuthHeader').innerHTML = `<i class="fa-solid fa-user-gear me-2"></i>Mode Pengawas Aktif (Keluar)`;
+      document.getElementById('btnAuthHeader').className = "btn btn-success btn-lg fw-semibold shadow-sm text-white";
+      document.getElementById('thAksi').style.display = "";
+      
+      bootstrap.Modal.getInstance(document.getElementById('pinModal')).hide();
+      renderTable();
+    }
+
     function setGugusFilter(gugus) {
       currentGugusFilter = gugus;
       const buttons = document.querySelectorAll('#gugusTab .nav-link');
-      buttons.forEach(btn => {
-        if (btn.innerText.includes(gugus)) {
-          btn.classList.add('active');
-        } else {
-          btn.classList.remove('active');
-        }
-      });
+      buttons.forEach(btn => btn.classList.toggle('active', btn.innerText.includes(gugus)));
       renderTable();
     }
 
@@ -162,8 +257,7 @@
       const buttons = document.querySelectorAll('#docTypeFilter .btn');
       buttons.forEach(btn => {
         const btnText = btn.innerText.toLowerCase();
-        const targetText = docType.toLowerCase();
-        if (btnText.includes(targetText) || (docType === 'Semua' && btnText.includes('semua'))) {
+        if (btnText.includes(docType.toLowerCase()) || (docType === 'Semua' && btnText.includes('semua'))) {
           btn.classList.add('active', 'btn-primary');
           btn.classList.remove('btn-outline-secondary', 'btn-outline-warning', 'btn-outline-success', 'btn-outline-primary');
         } else {
@@ -180,7 +274,7 @@
     function renderTable() {
       const tbody = document.getElementById('tableBody');
       tbody.innerHTML = "";
-
+      
       const filtered = rawData.filter(item => {
         const matchGugus = currentGugusFilter === "Semua" || 
           (item["Gugus kerja"] || "").toString().trim().toLowerCase() === currentGugusFilter.toLowerCase();
@@ -195,12 +289,8 @@
       });
 
       if (filtered.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="7" class="text-center py-4 text-muted">
-              Tidak ada data KSP yang cocok untuk filter saat ini.
-            </td>
-          </tr>`;
+        const colspan = isPengawas ? 8 : 7;
+        tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center py-4 text-muted">Tidak ada data KSP yang cocok.</td></tr>`;
         return;
       }
 
@@ -214,7 +304,7 @@
         const statusVal = (row["Status Validasi"] || "").trim();
         const feedback = (row["Umpan Balik pengawas"] || "").trim();
 
-        // Status Validasi Visual
+        // Label Status Validasi Visual
         let badgeStatus = `<span class="badge bg-secondary">Belum Divalidasi</span>`;
         if (statusVal.toLowerCase().includes("tervalidasi") || statusVal.toLowerCase().includes("sesuai") || statusVal.toLowerCase().includes("siap")) {
           badgeStatus = `<span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>${statusVal}</span>`;
@@ -231,6 +321,17 @@
             <button class="btn btn-sm btn-info text-white shadow-sm" onclick="showFeedbackModal('${encodeURIComponent(sekolah)}', '${encodeURIComponent(jenisDoc)}', '${encodeURIComponent(feedback)}')">
               <i class="fa-regular fa-comment-dots me-1"></i> Lihat Umpan Balik
             </button>`;
+        }
+
+        // Kolom Aksi Jika Mode Pengawas Aktif
+        let kolomAksi = "";
+        if (isPengawas) {
+          kolomAksi = `
+            <td>
+              <button class="btn btn-sm btn-warning fw-semibold text-dark shadow-sm" onclick="openFormValidasi('${encodeURIComponent(npsn)}', '${encodeURIComponent(sekolah)}', '${encodeURIComponent(jenisDoc)}', '${encodeURIComponent(statusVal)}', '${encodeURIComponent(feedback)}')">
+                <i class="fa-solid fa-pen-to-square me-1"></i> Input Validasi
+              </button>
+            </td>`;
         }
 
         const tr = document.createElement('tr');
@@ -250,23 +351,68 @@
           </td>
           <td>${badgeStatus}</td>
           <td>${feedbackContent}</td>
+          ${kolomAksi}
         `;
         tbody.appendChild(tr);
       });
     }
 
-    // Fungsi untuk menampilkan Modal Umpan Balik
+    // Buka Modal Form Validasi
+    function openFormValidasi(npsn, sekolah, jenisDoc, statusCurrent, feedbackCurrent) {
+      document.getElementById('valNpsn').value = decodeURIComponent(npsn);
+      document.getElementById('valSekolah').innerText = decodeURIComponent(sekolah);
+      document.getElementById('valDocInfo').innerText = "Jenis Dokumen: " + decodeURIComponent(jenisDoc);
+      document.getElementById('valStatus').value = decodeURIComponent(statusCurrent) || "Belum Divalidasi";
+      document.getElementById('valFeedback').value = decodeURIComponent(feedbackCurrent);
+
+      new bootstrap.Modal(document.getElementById('inputValidasiModal')).show();
+    }
+
+    // Mengirim Data Hasil Input ke Google Sheets lewat Apps Script
+    async function simpanValidasiToSheet() {
+      const btn = document.getElementById('btnSimpan');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...`;
+
+      const payload = {
+        pin: savedPin,
+        npsn: document.getElementById('valNpsn').value,
+        status: document.getElementById('valStatus').value,
+        feedback: document.getElementById('valFeedback').value
+      };
+
+      try {
+        const response = await fetch(GAS_API_URL, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+
+        if (result.status === "success") {
+          alert("✓ Berhasil! Validasi & Umpan balik tersimpan di Google Sheet.");
+          bootstrap.Modal.getInstance(document.getElementById('inputValidasiModal')).hide();
+          loadData(); // Re-fetch data terbaru
+        } else {
+          alert("Gagal: " + result.message);
+        }
+      } catch (err) {
+        alert("Terjadi kesalahan koneksi saat menyimpan.");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-paper-plane me-1"></i> Simpan ke Sheet`;
+      }
+    }
+
+    // Menampilkan Modal Umpan Balik bagi Pengunjung
     function showFeedbackModal(sekolah, jenisDoc, feedback) {
       document.getElementById('modalSekolahName').innerText = decodeURIComponent(sekolah);
       document.getElementById('modalDocType').innerText = "Jenis Dokumen: " + decodeURIComponent(jenisDoc);
       document.getElementById('modalFeedbackText').innerText = decodeURIComponent(feedback);
-
-      const feedbackModal = new bootstrap.Modal(document.getElementById('feedbackModal'));
-      feedbackModal.show();
+      new bootstrap.Modal(document.getElementById('feedbackModal')).show();
     }
 
+    // Jalankan awal
     loadData();
   </script>
 </body>
 </html>
-
